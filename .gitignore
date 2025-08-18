@@ -1,0 +1,15 @@
+
+.env
+
+# File yang di-generate
+node_modules/
+*.log
+npm-debug.log*
+
+# File blokir (opsional, jika ingin simpan manual)
+blocked.json
+muted.json
+
+# Environment variables
+.env.local
+.env.production
