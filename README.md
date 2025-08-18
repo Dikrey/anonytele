@@ -98,6 +98,47 @@ Akses dengan `/admin` (hanya untuk owner):
 
 ---
 
+## 🛑 Peringatan Penting: Hargai Pembuat Asli
+
+> ⚠️ **Jangan hapus atau ganti nama pembuat asli.**
+
+Bot ini dibuat dengan **waktu, usaha, dan hati** oleh:
+> 💙 **@raihan_official0307**
+
+Jika kamu:
+- 🔁 Re-upload
+- 🔄 Re-Post
+- 📦 Re-Compile
+- ☁️ Re-Host
+
+👉 **Tetap cantumkan kredit asli.**
+
+### ❌ DILARANG:
+- Mengaku sebagai pembuat asli
+- Menghapus/mengganti nama `@raihan_official0307`
+- Menjual seolah ini karya sendiri
+
+### ✅ DIIZINKAN:
+- Belajar & modifikasi
+- Host untuk pribadi
+- Bagikan — **dengan kredit**
+
+---
+
+## 🔗 Gunakan Referal? (Opsional tapi Diapresiasi)
+
+Jika kamu hosting bot ini dan ingin mendukung pembuat asli, kamu boleh tambahkan:
+
+> 🤖 Dibuat oleh: [@raihan_official0307](https://t.me/raihan_official0307)
+
+Atau di bio channel/group:
+> 🔗 Refferal: @raihan_official0307
+
+Terima kasih atas penghargaanmu! 🙏  
+Dukunganmu adalah motivasi untuk terus buat project keren lainnya. 💙
+
+---
+
 ## 📂 Struktur File
 ```
 anonytele/
