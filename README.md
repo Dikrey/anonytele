@@ -1,4 +1,3 @@
-```markdown
 ## 🤖 Anonymous Chat Bot
 
 > 🔐 *Chat anonim acak dengan siapa saja — tanpa identitas, hanya obrolan!*  
