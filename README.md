@@ -126,6 +126,12 @@ Kita bangun bersama bot yang lebih keren! 💡
 
 ---
 
+💡 **Credit tetap jalan, walau kamu udah ganti fitur bot.**  
+Jangan jadi lebah yang menghisap madu, lalu mengusir sang pemilik lebah.  
+— Hormati pembuat asli: **@raihan_official0307** 💙
+
+---
+
 ## 💌 Dibuat Dengan Cinta
 > Oleh **@raihan_official0307** 💙  
 > Untuk kamu yang ingin ngobrol bebas tanpa beban.
