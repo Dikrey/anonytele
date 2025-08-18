@@ -1,3 +1,23 @@
+/**
+ * =============================================
+ * 🤖 ANONYMOUS CHAT BOT
+ * 
+ * Dibuat oleh: @raihan_official0307
+ * 
+ * 🔔 JANGAN HAPUS NAMA PEMBUAT ASLI!
+ * 
+ * 
+ * 
+ * Jika kamu re-upload, re-post, atau re-host:
+ * - Tetap cantumkan kredit
+ * - Jangan mengaku-ngaku
+ * - Hargai sesama developer
+ * 
+ * 💙 Terima kasih sudah menghargai.
+ * 
+ * Join: https://t.me/raihan_official0307
+ * =============================================
+ */
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
@@ -22,7 +42,6 @@ const MUTED_FILE = path.join(__dirname, 'muted.json');
 // =============== Inisialisasi Bot ===============
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// =============== Struktur Data (RAM) ===============
 const waitingQueue = [];
 const partners = new Map();
 const userGender = new Map();
@@ -428,6 +447,27 @@ bot.onText(/\/admin/, (msg) => {
     bot.sendMessage(chatId, "❌ Akses ditolak.");
   }
 });
+
+/**
+ * =============================================
+ * 🤖 ANONYMOUS CHAT BOT
+ * 
+ * Dibuat oleh: @raihan_official0307
+ * 
+ * 🔔 JANGAN HAPUS NAMA PEMBUAT ASLI!
+ * 
+ * 
+ * 
+ * Jika kamu re-upload, re-post, atau re-host:
+ * - Tetap cantumkan kredit
+ * - Jangan mengaku-ngaku
+ * - Hargai sesama developer
+ * 
+ * 💙 Terima kasih sudah menghargai.
+ * 
+ * Join: https://t.me/raihan_official0307
+ * =============================================
+ */
 
 // =============== Handle Semua Pesan ===============
 bot.on('message', (msg) => {
