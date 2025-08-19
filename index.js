@@ -18,6 +18,7 @@
  * Join: https://t.me/raihan_official0307
  * =============================================
  */
+
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
@@ -27,7 +28,6 @@ const path = require('path');
 const TOKEN = process.env.TOKEN || 'YOUR_BOT_TOKEN';
 const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'raihan_official0307';
-const PREMIUM_IDS = new Set((process.env.PREMIUM_IDS || '').split(',').map(id => id.trim()).filter(Boolean));
 
 // =============== Konstanta ===============
 const IDLE_TIMEOUT = 120_000;
@@ -35,13 +35,12 @@ const MAX_QUEUE = 15;
 const REPORT_THRESHOLD = 3;
 const REPORT_WINDOW = 60 * 60 * 1000; // 1 jam
 const MESSAGE_TIMEOUT = 3000;
-const MAX_MESSAGE_LENGTH = 4000;
+const MAX_CAPTION_LENGTH = 4000;
 
 // =============== File Path ===============
 const DATA_DIR = path.join(__dirname, 'data');
 const BLOCKED_FILE = path.join(DATA_DIR, 'blocked.json');
 const MUTED_FILE = path.join(DATA_DIR, 'muted.json');
-const PREMIUM_FILE = path.join(DATA_DIR, 'premium.json');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
@@ -52,15 +51,13 @@ const bot = new TelegramBot(TOKEN, { polling: true });
 const waitingQueue = [];
 const partners = new Map();
 const userGender = new Map();
-const userInterest = new Map();
-const userState = new Map(); // awaiting_gender, admin_mode, awaiting_broadcast, dll
+const userState = new Map(); // awaiting_gender, admin_mode, admin_broadcast, dll
 const userTimers = new Map();
 const reportedUsers = []; // { reporterId, reportedId, timestamp }
 const sessionHistory = [];
 const userMessageLog = new Map();
 const mutedUsers = new Set();
 const blockedUsers = new Set();
-const userActivity = new Map();
 
 // =============== Load Data ===============
 function loadFile(filePath, defaultVal = []) {
@@ -87,13 +84,11 @@ function saveFile(filePath, data) {
 function loadAllData() {
   loadFile(BLOCKED_FILE).forEach(id => blockedUsers.add(String(id)));
   loadFile(MUTED_FILE).forEach(id => mutedUsers.add(String(id)));
-  loadFile(PREMIUM_FILE).forEach(id => PREMIUM_IDS.add(String(id)));
 }
 
 function saveAllData() {
   saveFile(BLOCKED_FILE, Array.from(blockedUsers).map(id => parseInt(id)));
   saveFile(MUTED_FILE, Array.from(mutedUsers).map(id => parseInt(id)));
-  saveFile(PREMIUM_FILE, Array.from(PREMIUM_IDS));
 }
 
 function isAdmin(chatId) {
@@ -147,9 +142,9 @@ function banUser(userId, chatId) {
     try {
       bot.sendMessage(userId, `❌ Kamu diblokir oleh admin.`);
     } catch (e) {}
-    bot.sendMessage(chatId, `✅ User \`${userId}\` berhasil diblokir.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `✅ User <code>${userId}</code> berhasil diblokir.`, { parse_mode: 'HTML' });
   } else {
-    bot.sendMessage(chatId, `❌ User \`${userId}\` sudah diblokir.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `❌ User <code>${userId}</code> sudah diblokir.`, { parse_mode: 'HTML' });
   }
 }
 
@@ -161,10 +156,10 @@ function unbanUser(userId, chatId) {
     try {
       bot.sendMessage(userId, `✅ Kamu di-unblock oleh admin.`);
     } catch (e) {}
-    bot.sendMessage(chatId, `✅ User \`${userId}\` berhasil di-unblock.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `✅ User <code>${userId}</code> berhasil di-unblock.`, { parse_mode: 'HTML' });
     return true;
   } else {
-    bot.sendMessage(chatId, `❌ User \`${userId}\` tidak diblokir.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `❌ User <code>${userId}</code> tidak diblokir.`, { parse_mode: 'HTML' });
   }
   return false;
 }
@@ -177,9 +172,9 @@ function muteUser(userId, chatId) {
     try {
       bot.sendMessage(userId, "🔇 Kamu dimute sementara.");
     } catch (e) {}
-    bot.sendMessage(chatId, `✅ User \`${userId}\` dimute.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `✅ User <code>${userId}</code> dimute.`, { parse_mode: 'HTML' });
   } else {
-    bot.sendMessage(chatId, `❌ User \`${userId}\` sudah dimute.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `❌ User <code>${userId}</code> sudah dimute.`, { parse_mode: 'HTML' });
   }
 }
 
@@ -191,10 +186,10 @@ function unmuteUser(userId, chatId) {
     try {
       bot.sendMessage(userId, "🔊 Mute dihapus.");
     } catch (e) {}
-    bot.sendMessage(chatId, `✅ User \`${userId}\` di-unmute.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `✅ User <code>${userId}</code> di-unmute.`, { parse_mode: 'HTML' });
     return true;
   } else {
-    bot.sendMessage(chatId, `❌ User \`${userId}\` tidak dimute.`, { parse_mode: 'HTML' });
+    bot.sendMessage(chatId, `❌ User <code>${userId}</code> tidak dimute.`, { parse_mode: 'HTML' });
   }
   return false;
 }
@@ -210,7 +205,8 @@ function isSpam(chatId) {
 }
 
 function containsBadWord(text) {
-  const badWords = ['anjing', 'babi', 'kontol', 'memek', 'fuck', 'shit'];
+  if (!text) return false;
+  const badWords = ['anjing', 'babi', 'kontol', 'memek', 'fuck', 'shit', 'dick'];
   return badWords.some(word => text.toLowerCase().includes(word));
 }
 
@@ -224,7 +220,7 @@ function checkAutoBan(userId) {
 }
 
 // =============== Fitur: Cari Partner ===============
-function findPartner(chatId, matchGender = null, interest = null) {
+function findPartner(chatId) {
   if (isUserBlocked(chatId)) {
     bot.sendMessage(chatId, `❌ Kamu diblokir.`);
     return;
@@ -234,19 +230,9 @@ function findPartner(chatId, matchGender = null, interest = null) {
     return;
   }
 
-  const userGenderValue = userGender.get(chatId);
-  const userInterestValue = userInterest.get(chatId);
-  let candidates = waitingQueue.filter(u => u.chatId !== chatId);
+  const candidates = waitingQueue.filter(u => u.chatId !== chatId);
 
-  if (matchGender === 'lawan' && userGenderValue) {
-    const target = userGenderValue === 'laki-laki' ? 'perempuan' : 'laki-laki';
-    candidates = candidates.filter(u => userGender.get(u.chatId) === target);
-  }
-
-  if (interest && userInterestValue) {
-    candidates = candidates.filter(u => userInterest.get(u.chatId) === userInterestValue);
-  }
-
+  // Acak
   for (let i = candidates.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
@@ -262,7 +248,7 @@ function findPartner(chatId, matchGender = null, interest = null) {
     partners.set(chatId, { partnerId, connectedAt: Date.now() });
     partners.set(partnerId, { partnerId: chatId, connectedAt: Date.now() });
 
-    const genderText = userGender.get(partnerId) === 'laki-laki' ? '👦' : '👧';
+    const genderText = userGender.get(partnerId) === 'laki-laki' ? '👦 Laki-laki' : '👧 Perempuan';
     bot.sendMessage(chatId, `✅ Terhubung dengan (${genderText})`, chatButtons);
     bot.sendMessage(partnerId, `✅ Terhubung!`, chatButtons);
 
@@ -271,7 +257,7 @@ function findPartner(chatId, matchGender = null, interest = null) {
     resetIdleTimer(chatId);
     resetIdleTimer(partnerId);
   } else {
-    waitingQueue.push({ chatId, gender: userGender.get(chatId), interest: userInterest.get(chatId) });
+    waitingQueue.push({ chatId, gender: userGender.get(chatId) });
     bot.sendMessage(chatId, "⏳ Menunggu partner...", chatButtons);
     userState.set(chatId, 'in_queue');
     resetIdleTimer(chatId);
@@ -307,7 +293,9 @@ function stopChat(chatId) {
 // =============== Tombol ===============
 const genderButtons = {
   reply_markup: {
-    keyboard: [[{ text: '👦 Laki-laki' }, { text: '👧 Perempuan' }]],
+    keyboard: [
+      [{ text: '👦 Laki-laki' }, { text: '👧 Perempuan' }]
+    ],
     resize_keyboard: true,
     one_time_keyboard: true,
   },
@@ -325,7 +313,10 @@ const mainButtons = {
 
 const chatButtons = {
   reply_markup: {
-    keyboard: [[{ text: '⏭️ Skip' }, { text: '🛑 Berhenti' }], [{ text: '🚨 Laporkan' }]],
+    keyboard: [
+      [{ text: '⏭️ Skip' }, { text: '🛑 Berhenti' }],
+      [{ text: '🚨 Laporkan' }]
+    ],
     resize_keyboard: true,
   },
 };
@@ -348,14 +339,13 @@ loadAllData();
 // =============== /start ===============
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  const name = msg.chat.first_name || "User";
 
   if (isUserBlocked(chatId)) {
     bot.sendMessage(chatId, `❌ Kamu diblokir.\nHubungi: @${ADMIN_USERNAME}`, mainButtons);
     return;
   }
 
-  // Reset state
+  // Reset
   partners.delete(chatId);
   userGender.delete(chatId);
   userState.set(chatId, 'awaiting_gender');
@@ -363,24 +353,25 @@ bot.onText(/\/start/, (msg) => {
   if (idx > -1) waitingQueue.splice(idx, 1);
 
   const welcome = `
-✨ *Welcome to Anonymous Chat!* ✨
+✨ <b>Welcome to Anonymous Chat!</b> ✨
 
-🔐 *Dibuat oleh:* @${ADMIN_USERNAME} 💙  
-🔍 *Fitur Utama:*
+🔐 <b>Dibuat oleh:</b> @${ADMIN_USERNAME} 💙  
+🔍 <b>Fitur Utama:</b>
 - 🎭 Chat acak & anonim
 - 👦👧 Pilih gender
 - 🎯 Cari lawan jenis
 - ⏭️ Bisa skip kapan saja
 - 🚨 Laporkan spam
+- 📸 Kirim foto & video
 - 🛑 Auto-stop jika idle
-- 💬 Anti-spam & filter kata kasar
+- 💬 Anti-spam & filter
 - 📊 Statistik sesi
 
-Tekan tombol di bawah untuk memulai!
+👉 <i>Pilih gender kamu untuk memulai:</i>
   `;
 
   bot.sendMessage(chatId, welcome, {
-    parse_mode: 'Markdown',
+    parse_mode: 'HTML',
     ...genderButtons,
   });
 });
@@ -396,9 +387,9 @@ bot.onText(/\/admin/, (msg) => {
 
   userState.set(chatId, 'admin_mode');
   const helpText = `
-🔐 *Mode Admin Aktif* 🔐
+🔐 <b>Mode Admin Aktif</b> 🔐
 
-📋 *Fitur Admin:*
+📋 <b>Fitur Admin:</b>
 - 📊 Lihat Statistik Bot
 - 📋 Lihat Laporan User
 - 🕵️ Cek Detail User
@@ -411,7 +402,7 @@ Gunakan tombol di bawah untuk navigasi:
   `;
 
   bot.sendMessage(chatId, helpText, {
-    parse_mode: 'Markdown',
+    parse_mode: 'HTML',
     ...adminButtons,
   });
 });
@@ -420,13 +411,14 @@ Gunakan tombol di bawah untuk navigasi:
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
+  const caption = msg.caption;
 
   if (msg.chat.type !== 'private') return;
   if (isUserBlocked(chatId) && !text?.startsWith('/start')) return;
 
   resetIdleTimer(chatId);
 
-  if (isSpam(chatId) && text) {
+  if (isSpam(chatId) && (text || caption)) {
     bot.sendMessage(chatId, "⛔ Jangan spam! Tunggu sebentar.");
     return;
   }
@@ -443,7 +435,7 @@ bot.on('message', (msg) => {
       const status = getUserStatusCount();
       const totalSessions = sessionHistory.length;
       bot.sendMessage(chatId, `
-📊 *Statistik Bot:*
+📊 <b>Statistik Bot:</b>
 👥 Sedang Chat: ${status.chatting} pasangan
 ⏳ Antri: ${status.inQueue}
 🟢 Total Aktif: ${status.totalActive}
@@ -451,7 +443,7 @@ bot.on('message', (msg) => {
 ⛔ Diblokir: ${blockedUsers.size}
 🔇 Dimute: ${mutedUsers.size}
 🚨 Laporan Aktif: ${reportedUsers.length}
-      `, { parse_mode: 'Markdown' });
+      `, { parse_mode: 'HTML' });
     }
 
     else if (text === '📋 Lihat Laporan') {
@@ -469,23 +461,23 @@ bot.on('message', (msg) => {
           const gender = userGender.get(rep.reportedId) || 'Tidak diketahui';
           const count = reportCount[rep.reportedId];
           bot.sendMessage(chatId, `
-🚨 *Laporan #${i+1}*
-👤 Dilaporkan: \`${rep.reportedId}\` (${gender})
+🚨 <b>Laporan #${i+1}</b>
+👤 Dilaporkan: <code>${rep.reportedId}</code> (${gender})
 🔁 Jumlah: ${count}/${REPORT_THRESHOLD}
-📤 Oleh: \`${rep.reporterId}\`
+📤 Oleh: <code>${rep.reporterId}</code>
 🕒 ${new Date(rep.timestamp).toLocaleTimeString()}
-          `, { parse_mode: 'Markdown' });
+          `, { parse_mode: 'HTML' });
         });
       }
     }
 
     else if (text === '🕵️ Cek User') {
-      bot.sendMessage(chatId, "🆔 Kirim *ID user* yang ingin dicek:");
+      bot.sendMessage(chatId, "🆔 Kirim <b>ID user</b> yang ingin dicek:", { parse_mode: 'HTML' });
       userState.set(chatId, 'admin_cekuser');
     }
 
     else if (text === '📢 Kirim Broadcast') {
-      bot.sendMessage(chatId, "📝 Kirim pesan yang ingin dibroadcast ke semua user:");
+      bot.sendMessage(chatId, "📝 Kirim pesan (teks, foto, video) untuk broadcast ke semua user:", { parse_mode: 'HTML' });
       userState.set(chatId, 'admin_broadcast');
     }
 
@@ -494,7 +486,7 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, "🟢 Tidak ada user yang diblokir.");
       } else {
         const list = Array.from(blockedUsers).join(', ');
-        bot.sendMessage(chatId, `⛔ *Diblokir (${blockedUsers.size}):*\n${list}`, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, `⛔ <b>Diblokir (${blockedUsers.size}):</b>\n${list}`, { parse_mode: 'HTML' });
       }
     }
 
@@ -503,7 +495,7 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, "🟢 Tidak ada user yang dimute.");
       } else {
         const list = Array.from(mutedUsers).join(', ');
-        bot.sendMessage(chatId, `🔇 *Dimute (${mutedUsers.size}):*\n${list}`, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, `🔇 <b>Dimute (${mutedUsers.size}):</b>\n${list}`, { parse_mode: 'HTML' });
       }
     }
 
@@ -514,30 +506,50 @@ bot.on('message', (msg) => {
         return;
       }
       const gender = userGender.get(userId) || 'Tidak diketahui';
-      const interest = userInterest.get(userId) || 'Tidak ada';
       const status = partners.has(userId) ? 'Chatting' : waitingQueue.some(u => u.chatId == userId) ? 'Antri' : 'Offline';
       const isBlocked = blockedUsers.has(userId) ? 'Ya' : 'Tidak';
       const isMuted = mutedUsers.has(userId) ? 'Ya' : 'Tidak';
 
       bot.sendMessage(chatId, `
-🔍 *Info User* \`${userId}\`
+🔍 <b>Info User</b> <code>${userId}</code>
 ⚧️ Gender: ${gender}
-🎯 Minat: ${interest}
 📍 Status: ${status}
 ⛔ Diblokir: ${isBlocked}
 🔇 Dimute: ${isMuted}
-      `, { parse_mode: 'Markdown' });
+      `, { parse_mode: 'HTML' });
       userState.set(chatId, 'admin_mode');
     }
 
     else if (userState.get(chatId) === 'admin_broadcast') {
       const users = Array.from(userState.keys()).filter(id => id !== chatId);
       let sent = 0;
-      users.forEach(id => {
-        bot.sendMessage(id, `📢 *Pesan dari Admin:*\n\n${text}`, { parse_mode: 'Markdown' })
-          .then(() => sent++)
-          .catch(() => {});
-      });
+
+      // Kirim sesuai tipe pesan
+      if (msg.photo) {
+        const photo = msg.photo[msg.photo.length - 1];
+        users.forEach(id => {
+          bot.sendPhoto(id, photo.file_id, { caption: caption || '' })
+            .then(() => sent++)
+            .catch(() => {});
+        });
+      } else if (msg.video) {
+        users.forEach(id => {
+          bot.sendVideo(id, msg.video.file_id, { caption: caption || '' })
+            .then(() => sent++)
+            .catch(() => {});
+        });
+      } else if (text) {
+        users.forEach(id => {
+          bot.sendMessage(id, text, { parse_mode: 'HTML' })
+            .then(() => sent++)
+            .catch(() => {});
+        });
+      } else {
+        bot.sendMessage(chatId, "❌ Format pesan tidak didukung.");
+        userState.set(chatId, 'admin_mode');
+        return;
+      }
+
       setTimeout(() => {
         bot.sendMessage(chatId, `✅ Broadcast selesai. Terkirim ke ${sent} user.`);
       }, 1000);
@@ -551,7 +563,10 @@ bot.on('message', (msg) => {
   if (userState.get(chatId) === 'awaiting_gender') {
     if (text === '👦 Laki-laki') userGender.set(chatId, 'laki-laki');
     else if (text === '👧 Perempuan') userGender.set(chatId, 'perempuan');
-    else return bot.sendMessage(chatId, 'Pilih gender dengan tombol.');
+    else {
+      bot.sendMessage(chatId, "👉 Pilih gender dengan tombol di bawah:", genderButtons);
+      return;
+    }
 
     userState.set(chatId, null);
     bot.sendMessage(chatId, "✅ Gender disimpan! Tekan 'Cari Partner' untuk mulai.", mainButtons);
@@ -567,28 +582,27 @@ bot.on('message', (msg) => {
   } else if (text === '🎯 Cari Lawan Jenis') {
     if (!userGender.has(chatId)) return bot.sendMessage(chatId, 'Mulai ulang /start');
     if (!partners.has(chatId) && !waitingQueue.some(u => u.chatId === chatId)) {
-      findPartner(chatId, 'lawan');
+      findPartner(chatId);
     }
   } else if (text === '📝 Tentang') {
     bot.sendMessage(chatId, `
-🤖 *Anonymous Chat*
+🤖 <b>Anonymous Chat</b>
 🔐 Dibuat oleh: @${ADMIN_USERNAME}
 💙 Tanpa database
+📸 Kirim foto & video
 🛡️ Anti-spam & badword
 🚀 Auto-stop idle
 📊 Statistik sesi
 🎯 Cari lawan jenis
-⭐ Rating system
-💎 Premium (coming soon)
-    `, { parse_mode: 'Markdown' });
+    `, { parse_mode: 'HTML' });
   } else if (text === '📊 Statistik') {
     const userSessions = sessionHistory.filter(s => s.userId == chatId);
     const totalDuration = userSessions.reduce((sum, s) => sum + s.durationSec, 0);
     bot.sendMessage(chatId, `
-📊 *Statistik Anda:*
+📊 <b>Statistik Anda:</b>
 🔹 Total sesi: ${userSessions.length}
 🔹 Total waktu: ${formatTime(totalDuration)}
-    `, { parse_mode: 'Markdown' });
+    `, { parse_mode: 'HTML' });
   } else if (text === '🛑 Berhenti') {
     stopChat(chatId);
   } else if (text === '🚨 Laporkan') {
@@ -604,15 +618,24 @@ bot.on('message', (msg) => {
   } else {
     const partner = partners.get(chatId);
     if (partner && !isUserMuted(chatId)) {
-      if (msg.text && containsBadWord(msg.text)) {
-        bot.sendMessage(chatId, "🚫 Kata kasar tidak diperbolehkan.");
+      if (caption && containsBadWord(caption)) {
+        bot.sendMessage(chatId, "🚫 Caption mengandung kata kasar.");
         return;
       }
-      if (msg.text?.length > MAX_MESSAGE_LENGTH) {
-        bot.sendMessage(chatId, "⚠️ Pesan terlalu panjang (max 4000 karakter).");
+      if (text && containsBadWord(text)) {
+        bot.sendMessage(chatId, "🚫 Pesan mengandung kata kasar.");
         return;
       }
-      bot.forwardMessage(partner.partnerId, chatId, msg.message_id).catch(() => stopChat(chatId));
+
+      // Forward pesan (text, photo, video)
+      if (msg.text) {
+        bot.forwardMessage(partner.partnerId, chatId, msg.message_id).catch(() => stopChat(chatId));
+      } else if (msg.photo) {
+        const photo = msg.photo[msg.photo.length - 1];
+        bot.sendPhoto(partner.partnerId, photo.file_id, { caption: caption || '' }).catch(() => stopChat(chatId));
+      } else if (msg.video) {
+        bot.sendVideo(partner.partnerId, msg.video.file_id, { caption: caption || '' }).catch(() => stopChat(chatId));
+      }
     } else if (!waitingQueue.some(u => u.chatId === chatId)) {
       bot.sendMessage(chatId, "Tekan '🔍 Cari Partner' untuk mulai.", mainButtons);
     }
