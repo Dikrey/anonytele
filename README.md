@@ -118,8 +118,7 @@ Jika kamu:
 - Menjual seolah ini karya sendiri
 
 ### ✅ DIIZINKAN:
-- Belajar & modifikasi
-- Host untuk pribadi
+- Belajar
 - Bagikan — **dengan kredit**
 
 ---
