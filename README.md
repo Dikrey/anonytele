@@ -67,7 +67,6 @@ npm install
 ```env
 TOKEN=123456789:ABCdefGHIjklMNopQRS-tuvwxyz123456789
 ADMIN_IDS=123456789
-ADMIN_USERNAME=raihan_official0307
 ```
 
 ### 4. Jalankan bot
